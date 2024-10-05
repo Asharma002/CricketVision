@@ -17,6 +17,7 @@ class cricket:
         self.scorecard = {}
         self.wicket_fallen = False
         self.setup_scorecard()
+        self.max_wickets=len(team1)-1
       
         
 
@@ -31,7 +32,7 @@ class cricket:
     # def wicket_way(self):
         # wicket_type= input("b for bowled ,  r for runout, l for lbw, c for caught. ")
     def match(self):
-        if self.wickets >= size or self.balls >= self.overs * 6:
+        if self.wickets >= self.max_wickets or  self.balls >= self.overs * 6:
         
             return False
     
@@ -93,24 +94,41 @@ class cricket:
     def display_score(self):
         print("scorboard:")
         print("------------")
-        print(f"total runs:{self.total_runs}/{self.wickets}")
+        print(f"final score:{self.total_runs}/{self.wickets}")
         print("------------")
         print(f"overs:{self.overs}")
     
       
-    def simulate_match(self):
+    def simulate_match(self,target=None):
         while self.match():
             if self.balls % 6 == 0:
                 self.display_over()
                 self.change_strike()
             if self.wicket_fallen:
                 print(f"Wicket fallen! Total Wickets: {self.wickets}")
+            if target is not None and self.total_runs>target:
+                print(f" team 2 won!")
+                break
+            
+            
+                
             time.sleep(0.5)
+
         if self.current_over:
             self.display_over()
         self.display_score()
 
 
+
+    def compare(self,target):
+        if self.total_runs>target:
+            print(f" team 2 won!")
+            pass
+        elif self.total_runs<target:
+            print(f"team1 won by {target - self.total_runs} runs!")
+        else: 
+            print("It's a tie!")
+        
 # Get input for teams from the user
 def get_team(team_name):
         team = []
@@ -139,8 +157,17 @@ def main():
     team2 = get_team("Team 2")
     overs = get_overs()
 
-    match = cricket(team1, team2, overs=overs)
-    match.simulate_match()
+    match1 = cricket(team1, team2, overs=overs)
+    match1.simulate_match()
+
+    target=match1.total_runs
+    print(f"Target runs:{target}")
+
+    match2 = cricket(team1, team2, overs=overs)
+    match2.simulate_match(target)
+    if match2.total_runs <= target:
+        match2.compare(target)
+    
 
 if __name__ == "__main__":
     main()

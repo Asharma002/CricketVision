@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 
-class CricketMatch:
+class Cricket:
     def __init__(self, team1, team2, overs):
         self.overs = overs
         self.total_runs = 0
@@ -14,13 +14,13 @@ class CricketMatch:
         self.team1 = team1
         self.team2 = team2
         self.scorecard = {}
-        self.max_wickets=len(team1)-1
         self.wicket_fallen = False
+        self.max_wickets = len(team1) - 1
         self.setup_scorecard()
 
     def setup_scorecard(self):
         for player in self.team1:
-            self.scorecard[player] = {"Runs": 0, "Balls": 0, 'Status': 'not out'}
+            self.scorecard[player] = {"Runs": 0, "Wickets": 0, "Balls": 0, 'Status': 'not out'}
 
     def match(self, outcome):
         if self.wickets >= self.max_wickets or self.balls >= self.overs * 6:
@@ -30,24 +30,21 @@ class CricketMatch:
             self.wicket_fallen = True
             self.wickets += 1
             self.current_over.append("W")
-            self.balls += 1
             self.next_batsman()
 
         elif outcome == 'WI':
-            st.write("Wide ball! Extra run awarded.")
             self.total_runs += 1
-            self.current_over.append("WI")  # Wide ball added to the over
+            self.current_over.append("WI")
 
         elif outcome == 'N':
-            st.write("No ball! Extra run awarded.")
             self.total_runs += 1
-            self.current_over.append("N")  # No ball added to the over
+            self.current_over.append("N")
 
         elif outcome == 'B':
-            runs = st.number_input("Enter runs for bye/leg bye:", min_value=0, max_value=6, key="bye_runs")
+            runs = int(st.number_input("Enter runs for bye/leg bye:", min_value=0, max_value=6))
             self.total_runs += runs
             self.current_over.append(f"B{runs}")
-            self.balls += 1  # Ball counts for a bye
+            self.balls += 1
 
         else:
             runs = int(outcome)
@@ -59,17 +56,15 @@ class CricketMatch:
             if runs in [1, 3]:
                 self.change_strike()
 
-            self.balls += 1  # Ball counts for a regular run
+            self.balls += 1
 
         return True
 
     def next_batsman(self):
         if self.batting_order:
-            st.write(f"{self.striker} is out. New batsman is {self.batting_order[0]}")
             self.striker = self.batting_order.pop(0)
 
     def change_strike(self):
-        st.write(f"Strike changed! {self.non_striker} is now on strike.")
         self.striker, self.non_striker = self.non_striker, self.striker
 
     def display_over(self):
@@ -77,90 +72,81 @@ class CricketMatch:
         self.current_over = []
 
     def display_score(self):
-        st.write("### Scoreboard:")
-        st.write(f"**Total runs:** {self.total_runs}/{self.wickets}")
-        st.write(f"**Overs:** {self.balls // 6}.{self.balls % 6}")
+        st.write("Scoreboard:")
+        st.write(f"Runs: {self.total_runs}/{self.wickets}")
+        st.write(f"Overs: {self.balls // 6}.{self.balls % 6}")
 
-    def simulate_match(self):
-        if self.balls % 6 == 0 and self.balls != 0:
-            self.display_over()
-            self.change_strike()
-        if self.wicket_fallen:
-            st.write(f"**Wicket fallen! Total Wickets:** {self.wickets}")
-            self.wicket_fallen = False  # Reset wicket flag after displaying
+    def simulate_match(self, target=None):
+        return self.total_runs, self.wickets, self.balls
 
-        if self.balls >= self.overs * 6:
-            st.write("Innings Over!")
-            self.display_score()
-            return False
+    def compare(self, target):
+        if self.total_runs > target:
+            return "Team 2 won!"
+        elif self.total_runs < target:
+            return f"Team 1 won by {target - self.total_runs} runs!"
+        else:
+            return "It's a tie!"
 
-        return True
-
-
-# Get input for teams from the user in Streamlit
-def get_team(team_name):
-    size = st.number_input(f"Enter size of {team_name}", min_value=2, max_value=11, key=f"size_{team_name}")
-    team = []
-    for i in range(1, size + 1):
-        # Reduce text box size by using columns
-        cols = st.columns([2, 4])  # The first column is for labels, the second for inputs
-        with cols[1]:
-            player = st.text_input(f"Player {i}", key=f"{team_name}_player_{i}").strip()
-        team.append(player)
-    return team
-
-
-def display_match_summary(team1, team2, overs):
-    st.write("### Match Summary")
-    cols = st.columns([1, 1, 1])
-    with cols[0]:
-        st.write(f"**Team 1:**")
-        for player in team1:
-            st.write(player)
-    with cols[1]:
-        st.write(f"**Team 2:**")
-        for player in team2:
-            st.write(player)
-    with cols[2]:
-        st.write(f"**Overs:** {overs}")
-
-
-# Main game logic in Streamlit
+# Main game logic
 def main():
     st.title("Cricket Match Simulation")
 
-    # Session state to store the match object
-    if 'match' not in st.session_state:
-        team1 = get_team("Team 1")
-        team2 = get_team("Team 2")
-        overs = st.number_input("Enter the number of overs:", min_value=1, max_value=50, key="overs")
-
-        # Display the match summary
-        if team1 and team2:
-            display_match_summary(team1, team2, overs)
+    if "match1" not in st.session_state:
+        # Input for team names and players
+        team1 = st.text_input("Enter Team 1 Name", value="Team 1")
+        team2 = st.text_input("Enter Team 2 Name", value="Team 2")
+        
+        players_team1 = [st.text_input(f"Enter player {i+1} for {team1}", value=f"Player {i+1}") for i in range(11)]
+        players_team2 = [st.text_input(f"Enter player {i+1} for {team2}", value=f"Player {i+1}") for i in range(11)]
+        
+        # Input for overs
+        overs = st.number_input("Enter the number of overs:", min_value=1, max_value=50)
 
         if st.button("Start Match"):
-            st.session_state.match = CricketMatch(team1, team2, overs)
+            # Initialize match state
+            st.session_state.match1 = Cricket(players_team1, players_team2, overs)
+            st.session_state.match2 = Cricket(players_team2, players_team1, overs)
+            st.session_state.target = None
+            st.session_state.innings = 1
+            st.session_state.score = 0
 
-    if 'match' in st.session_state:
-        match = st.session_state.match
-
-        # Horizontal bowling options
-        st.write("### Select the outcome for the ball:")
-
-        # Create 10 columns for each outcome, so they appear horizontally
-        cols = st.columns(10)
+    if "match1" in st.session_state:
+        match = st.session_state.match1 if st.session_state.innings == 1 else st.session_state.match2
+        target = st.session_state.target
+        
+        st.write(f"Innings: {st.session_state.innings}")
+        
+        # Horizontal bowling outcome input
         bowling_options = ['0', '1', '2', '3', '4', '6', 'W', 'WI', 'N', 'B']
-
+        cols = st.columns(len(bowling_options))
         outcome = None
         for i, opt in enumerate(bowling_options):
             if cols[i].button(opt):
                 outcome = opt
 
         if outcome:
-            if match.simulate_match():
-                match.match(outcome)
-                match.display_score()
+            # Simulate the match with the selected outcome
+            match.match(outcome)
+            
+            # Display the scoreboard after every ball
+            match.display_score()
+
+            # Check if Team 1's innings is over
+            if st.session_state.innings == 1 and match.balls >= match.overs * 6 or match.wickets >= match.max_wickets:
+                st.session_state.target = match.total_runs+1
+                st.write(f"Target for Team 2: {st.session_state.target}")
+                st.session_state.innings = 2
+
+            # Check if Team 2 surpasses the target
+            elif st.session_state.innings == 2 and match.total_runs > st.session_state.target:
+                st.write("Team 2 won!")
+                st.session_state.clear()  # Reset the target for the next innings
+                st.session_state.innings = 3  # End of the game
+
+            # Check if match ends without exceeding the target
+            if st.session_state.innings == 2 and match.balls >= match.overs * 6 or match.wickets >= match.max_wickets:
+                result = match.compare(st.session_state.target)
+                st.write(result)
 
 if __name__ == "__main__":
     main()
